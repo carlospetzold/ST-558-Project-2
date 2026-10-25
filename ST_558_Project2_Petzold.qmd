@@ -35,7 +35,9 @@ player_season <- read.csv("data/player_season.csv")
 
 ```
 
-Let's start light with some contingency tables to explore our data. Personally, I am a fan of Borussia Dortmund, who are a German Club in the Bundesliga, which is the highest division in German professional soccer. I am interested in the number of appearances, number of goals, and number of assists held by every player on the team:
+## Static Exploration
+
+Let's start light with some 1-way contingency tables to explore our data. Personally, I am a fan of Borussia Dortmund, who are a German Club in the Bundesliga, which is the highest division in German professional soccer. I am interested in the number of appearances, number of goals, and number of assists held by every player on the team:
 
 ```{r Dortmund 1-way CT}
 
@@ -62,3 +64,32 @@ player_matches |>
 
 ```
 
+Now let's take a look at the same metrics, but add another layer of detail and see whether or not the players were starters or substitutes:
+
+```{r Dortmund 2-way CT}
+
+#Number of Appearances
+player_matches |>
+  filter(team_name == "Borussia Dortmund") |>
+  group_by(player_name, starter) |>
+  summarize(Appearances = n()) |>
+  arrange(desc(Appearances)) |>
+  pivot_wider(names_from = starter, values_from = Appearances)
+
+#Total number of goals scored
+player_matches |>
+  filter(team_name == "Borussia Dortmund") |>
+  group_by(player_name, starter) |>
+  summarize(Total_Goals = sum(goals__value)) |>
+  arrange(desc(Total_Goals)) |>
+  pivot_wider(names_from = starter, values_from = Total_Goals)
+
+#Total number of assists
+player_matches |>
+  filter(team_name == "Borussia Dortmund") |>
+  group_by(player_name, starter) |>
+  summarize(Total_Assists = sum(assists__value)) |>
+  arrange(desc(Total_Assists)) |>
+  pivot_wider(names_from = starter, values_from = Total_Assists)
+
+```
