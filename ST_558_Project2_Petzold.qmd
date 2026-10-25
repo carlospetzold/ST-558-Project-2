@@ -4,15 +4,40 @@ author: "Carlos Petzold"
 format: html
 ---
 
-```{r}
-1 + 1
+### Introduction
+
+Here we are working on our second project for ST 558, back to the old grindstone... We will work on building a shiny app to allow a user to explore a data set of our choosing.
+
+For this project, I decided to use player-level data from the 2025-2026 UEFA Champions League (UCL) season (highest level of professional soccer) to build my app (Source: FotMob). The criteria for a player being included in the data set is that they had to make at least 1 appearance (as either a starter or a substitute) in the UCL season at any point.
+
+Let's start by downloading the data into our session:
+
+```{r Libs}
+
+library(utils)
+
 ```
 
-You can add options to executable code like this 
+### Download Data
 
-```{r}
-#| echo: false
-2 * 2
+We are pulling in 3 separate data sets below:
+
+1) Player Matches: This data set contains match-level information from our 2025-26 UCL season for each player that registered at least 1 appearance. This includes information like player rating, minutes played, goals scored, expected goals, etc. 
+
+2) Player Season: This data set contains season-level information from our UCL season for each player that registered at least 1 appearance. This includes information like total number of goals, total minutes played, expected goals per 90 minutes, etc. 
+
+3) Player Season from Matches: adds a calculated season summary for each player/team, using the rows in player_matches.csv. Everything in it could be recreated from that match data set.
+
+```{r Pull data}
+
+player_matches <- read.csv("data/player_matches.csv")
+player_season <- read.csv("data/player_season.csv")
+player_season_from_matches <- read.csv("data/player_season_from_matches.csv")
+
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+
+```{r}
+
+```
+
