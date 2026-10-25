@@ -15,29 +15,50 @@ Let's start by downloading the data into our session:
 ```{r Libs}
 
 library(utils)
+library(tidyverse)
 
 ```
 
 ### Download Data
 
-We are pulling in 3 separate data sets below:
+We are pulling in 2 separate data sets below:
 
 1) Player Matches: This data set contains match-level information from our 2025-26 UCL season for each player that registered at least 1 appearance. This includes information like player rating, minutes played, goals scored, expected goals, etc. 
 
 2) Player Season: This data set contains season-level information from our UCL season for each player that registered at least 1 appearance. This includes information like total number of goals, total minutes played, expected goals per 90 minutes, etc. 
 
-3) Player Season from Matches: adds a calculated season summary for each player/team, using the rows in player_matches.csv. Everything in it could be recreated from that match data set.
 
 ```{r Pull data}
 
 player_matches <- read.csv("data/player_matches.csv")
 player_season <- read.csv("data/player_season.csv")
-player_season_from_matches <- read.csv("data/player_season_from_matches.csv")
 
 ```
 
+Let's start light with some contingency tables to explore our data. Personally, I am a fan of Borussia Dortmund, who are a German Club in the Bundesliga, which is the highest division in German professional soccer. I am interested in the number of appearances, number of goals, and number of assists held by every player on the team:
 
-```{r}
+```{r Dortmund 1-way CT}
+
+#Number of Appearances
+player_matches |>
+  filter(team_name == "Borussia Dortmund") |>
+  group_by(player_name) |>
+  summarize(Appearances = n()) |>
+  arrange(desc(Appearances))
+
+#Total number of goals scored
+player_matches |>
+  filter(team_name == "Borussia Dortmund") |>
+  group_by(player_name) |>
+  summarize(Total_Goals = sum(goals__value)) |>
+  arrange(desc(Total_Goals))
+
+#Total number of assists
+player_matches |>
+  filter(team_name == "Borussia Dortmund") |>
+  group_by(player_name) |>
+  summarize(Total_Assists = sum(assists__value)) |>
+  arrange(desc(Total_Assists))
 
 ```
 
