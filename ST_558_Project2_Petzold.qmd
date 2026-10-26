@@ -141,7 +141,137 @@ gt(player_matches |>
 
 To be honest, these goal and assist numbers don't look too hot for a Top-Flight German team that is (supposedly) meant to be a top 2 team in Germany, and a top 12 club in Europe. Luckily, out data (and many other sources of soccer data), track player match ratings for each game, which scale from 1-10. In the FotMob rating system, each player starts their appearance with a 6.0 rating, which increases or decreases based on their actions during the game. Let's take a look at the average match rating across the season for the Dortmund players, and compare them to the other teams:
 
-```{r}
+```{r Dortmund Numerical Summaries}
+
+#Let's start with the average match rating for each player at Dortmund across the season, then the team as a whole:
+
+gt(player_matches |>
+     filter(team_name == "Borussia Dortmund") |>
+     drop_na(rating_title__value) |>
+     group_by(player_name) |>
+     summarize(num_games = n(),
+               avg_match_rating = round(mean(rating_title__value), 2), .groups = "drop"
+               ) |>
+     arrange(desc(avg_match_rating))
+     
+) |>
+  tab_header(
+    title = "Average Match Rating - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League"
+  ) |>
+  cols_label(
+    player_name = "Player",
+    avg_match_rating = "Average Match Rating",
+    num_games = "Number of Games Played"
+  )
+
+#Let's also look at these average match ratings as starters and as subs:
+gt(player_matches |>
+     filter(team_name == "Borussia Dortmund") |>
+     drop_na(rating_title__value) |>
+     mutate(
+       starter = if_else(starter == "True", "Starter", "Substitute"),
+       num_games = n(),
+       .by = player_name
+     ) |>
+     group_by(player_name, starter) |>
+     summarize(
+       num_games = first(num_games),
+       avg_match_rating = round(mean(rating_title__value), 2),
+       .groups = "drop"
+     ) |>
+     arrange(desc(avg_match_rating)) |>
+     pivot_wider(
+       id_cols = c(player_name, num_games),
+       names_from = starter,
+       values_from = avg_match_rating
+     )
+) |>
+  tab_header(
+    title = "Average Match Rating - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League"
+  ) |>
+  cols_label(
+    player_name = "Player",
+    num_games = "Number of Games Played"
+  ) |>
+  sub_missing(
+    columns = c(Starter, Substitute),
+    missing_text = "—"
+  )
+
+
+```
+
+Unfortunately, the data does not contain player ages, but one thing I notice at a glance is that a lot of the players with the higher ratings are on the younger side. This is likely biased though, since these younger players are given less opportunities to play and therefore have a lower sample size of games, but it is still encouraging to see that they are playing well when given their opportunities. Let's see how the teams average rating compares to other teams in the league:
+
+```{r League Numerical Summaries - Average Rating}
+
+gt(player_matches |>
+     drop_na(rating_title__value) |>
+     group_by(team_name) |>
+     summarize(num_games = n(),
+               avg_match_rating = round(mean(rating_title__value), 2), .groups = "drop"
+               ) |>
+     arrange(desc(avg_match_rating))
+     
+) |>
+  tab_header(
+    title = "Average Match Rating - All Teams",
+    subtitle = "2025-26 UEFA Champions League"
+  ) |>
+  cols_label(
+    team_name = "Team",
+    avg_match_rating = "Average Match Rating",
+    num_games = "# of Match Ratings"
+  )
+
+```
+
+Above we can see the total number of match ratings (or the total number of player appearances across the entire season) for each team, and their average team match ratings across the entire season. The top 3 teams, Bayern, PSG, and Arsenal, all made last years UCL semi-final, as one might expect based on their ratings. Interestingly though, Athletico Madrid was the 4th team to make the semis with the 11th ranked average match ratings for their players. An underdog that appeared to over perform compared to other teams. Internazionale, Newcastle, and Tottenham all had relatively underwhelming performances relative to their average match ratings, as they were all knocked out in the Round of 16 or prior. 
+
+It could also be interesting to check out which teams ran the most distance on average, and which teams created the most chances on average. We are using averages here since many teams do not play the same number of games:
+
+```{r League Numerical Summaries - Distance and Chances Created}
+
+gt(player_matches |>
+     drop_na(physical_metrics_distance_covered__value) |>
+     group_by(team_name) |>
+     summarize(num_games = n(),
+               avg_distance_covered = round(mean(physical_metrics_distance_covered__value), 2), .groups = "drop"
+               ) |>
+     arrange(desc(avg_distance_covered))
+     
+) |>
+  tab_header(
+    title = "Average Distance Covered - All Teams",
+    subtitle = "2025-26 UEFA Champions League"
+  ) |>
+  cols_label(
+    team_name = "Team",
+    avg_distance_covered = "Average Distance Covered Per Player",
+    num_games = "# of Match Ratings"
+  )
+
+
+gt(player_matches |>
+     drop_na(chances_created__value) |>
+     group_by(team_name) |>
+     summarize(num_games = n(),
+               avg_chances = round(mean(chances_created__value), 2), .groups = "drop"
+               ) |>
+     arrange(desc(avg_chances))
+     
+) |>
+  tab_header(
+    title = "Average Chances Created - All Teams",
+    subtitle = "2025-26 UEFA Champions League"
+  ) |>
+  cols_label(
+    team_name = "Team",
+    avg_chances = "Average Chances Created Per Player",
+    num_games = "# of Match Ratings"
+  )
 
 ```
 
