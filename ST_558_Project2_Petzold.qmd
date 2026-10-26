@@ -36,9 +36,12 @@ player_season <- read.csv("data/player_season.csv")
 
 ```
 
-## Static Exploration
+### Static Exploration
 
 Let's start light with some 1-way contingency tables to explore our data. Personally, I am a fan of Borussia Dortmund, who are a German Club in the Bundesliga, which is the highest division in German professional soccer. I am interested in the number of appearances, number of goals, and number of assists held by every player on the team:
+
+
+#### 1-Way Contingency Tables
 
 ```{r Dortmund 1-way CT}
 
@@ -86,6 +89,10 @@ gt(player_matches |>
   )
 
 ```
+
+Note that Goals and Assists are NA for our friend Gregor Kobel due to his position as Goalkeeper. Certainly not impossible for him to have a goal or an assist, but that was the default value in the data for goals and assists for goalkeepers if they did not have any goals or assists, and I think it makes sense for our purposes to leave it that way for the time being given how rare these occur. 
+
+#### 2-Way Contingency Tables
 
 Now let's take a look at the same metrics, but add another layer of detail and see whether or not the players were starters or substitutes:
 
@@ -139,7 +146,9 @@ gt(player_matches |>
 
 ```
 
-To be honest, these goal and assist numbers don't look too hot for a Top-Flight German team that is (supposedly) meant to be a top 2 team in Germany, and a top 12 club in Europe. Luckily, out data (and many other sources of soccer data), track player match ratings for each game, which scale from 1-10. In the FotMob rating system, each player starts their appearance with a 6.0 rating, which increases or decreases based on their actions during the game. Let's take a look at the average match rating across the season for the Dortmund players, and compare them to the other teams:
+To be honest, these goal and assist numbers don't look too hot for a Top-Flight German team that is (supposedly) meant to be a top 2 team in Germany, and a top 12 club in Europe. Luckily, our data (and many other sources of soccer data), track player match ratings for each game, which scale from 1-10. In the FotMob rating system, each player starts their appearance with a 6.0 rating, which increases or decreases based on their actions during the game. Let's take a look at the average match rating across the season for the Dortmund players, and compare them to the other teams:
+
+#### Numerical Summaries
 
 ```{r Dortmund Numerical Summaries}
 
@@ -249,7 +258,7 @@ gt(player_matches |>
   ) |>
   cols_label(
     team_name = "Team",
-    avg_distance_covered = "Average Distance Covered Per Player",
+    avg_distance_covered = "Average Distance Covered Per Player Per Game (km)",
     num_games = "# of Match Ratings"
   )
 
@@ -269,9 +278,19 @@ gt(player_matches |>
   ) |>
   cols_label(
     team_name = "Team",
-    avg_chances = "Average Chances Created Per Player",
+    avg_chances = "Average Chances Created Per Player Per Game",
     num_games = "# of Match Ratings"
   )
 
 ```
+
+The distance covered table tells us something interesting: the amount of distance that a team covers during a game does not necessary correlate with team success. The UCL champions, PSG, did have quite a high average distance covered per player per game, but there are other teams that went far in the tournament that were much lower on the list, like Barcelona (dead last in average distance covered!) and Arsenal (middle of the pack). The 3 highest distance-covering teams did not make it past the round of 16, with only 1 even making it there. 
+
+The table for chances created is a different story. Chances created translate to goals scored, which translates to games won. This is, in my own personal opinion, the best proxy for whether or not a team will be successful. PSG, the eventual winners, had the highest average number of chances created per player per game, with Bayern in 3rd and Arsenal just behind both in 8th. Athletico Madrid again here showing that they over performed, having the 16th highest number of chances created per player per game. 
+
+Looking at Dortmund in both cases, they placed 10th in Distance Covered and 19th in Chances Created...lots of running but very little chance creation. Not the best formula for success, and certainly not the best formula for keeping players motivated to win. The last thing any player wants is to be running the entire game with little to no opportunities to put chances away. Hopefully things improve this season, but for now, the running will continue until chance creation improves...
+
+#### Plots
+
+Let's take a look at the above tables and summaries visually:
 
