@@ -16,6 +16,7 @@ Let's start by downloading the data into our session:
 
 library(utils)
 library(tidyverse)
+library(gt)
 
 ```
 
@@ -42,25 +43,47 @@ Let's start light with some 1-way contingency tables to explore our data. Person
 ```{r Dortmund 1-way CT}
 
 #Number of Appearances
-player_matches |>
+gt(player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   group_by(player_name) |>
   summarize(Appearances = n()) |>
-  arrange(desc(Appearances))
+  arrange(desc(Appearances))) |>
+  tab_header(
+    title = "Number of Appearances - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League"
+  ) |>
+  cols_label(
+    player_name = "Player"
+  )
 
 #Total number of goals scored
-player_matches |>
+gt(player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   group_by(player_name) |>
-  summarize(Total_Goals = sum(goals__value)) |>
-  arrange(desc(Total_Goals))
+  summarize(Goals = sum(goals__value)) |>
+  arrange(desc(Goals))) |>
+  tab_header(
+    title = "Number of Goals Scored - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League"
+  ) |>
+  cols_label(
+    player_name = "Player"
+  )
+  
 
 #Total number of assists
-player_matches |>
+gt(player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   group_by(player_name) |>
-  summarize(Total_Assists = sum(assists__value)) |>
-  arrange(desc(Total_Assists))
+  summarize(Assists = sum(assists__value)) |>
+  arrange(desc(Assists))) |>
+  tab_header(
+    title = "Number of Assists - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League"
+  ) |>
+  cols_label(
+    player_name = "Player"
+  )
 
 ```
 
@@ -69,27 +92,56 @@ Now let's take a look at the same metrics, but add another layer of detail and s
 ```{r Dortmund 2-way CT}
 
 #Number of Appearances
-player_matches |>
+gt(player_matches |>
   filter(team_name == "Borussia Dortmund") |>
+  mutate(starter = if_else(starter == "True", "Starter", "Substitute")) |>
   group_by(player_name, starter) |>
   summarize(Appearances = n()) |>
   arrange(desc(Appearances)) |>
-  pivot_wider(names_from = starter, values_from = Appearances)
+  pivot_wider(names_from = starter, values_from = Appearances) |>
+  mutate(Starter = coalesce(Starter, 0), Substitute = coalesce(Substitute, 0))
+) |>
+  tab_header(
+    title = "Number of Appearances by Appearance Type - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League"
+  )  
 
 #Total number of goals scored
-player_matches |>
+gt(player_matches |>
   filter(team_name == "Borussia Dortmund") |>
+  mutate(starter = if_else(starter == "True", "Starter", "Substitute")) |>
   group_by(player_name, starter) |>
   summarize(Total_Goals = sum(goals__value)) |>
   arrange(desc(Total_Goals)) |>
-  pivot_wider(names_from = starter, values_from = Total_Goals)
+  pivot_wider(names_from = starter, values_from = Total_Goals) |>
+  mutate(Starter = coalesce(Starter, 0), Substitute = coalesce(Substitute, 0))
+) |>
+  tab_header(
+    title = "Number of Goals by Appearance Type - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League"
+  ) 
+
 
 #Total number of assists
-player_matches |>
+gt(player_matches |>
   filter(team_name == "Borussia Dortmund") |>
+  mutate(starter = if_else(starter == "True", "Starter", "Substitute")) |>
   group_by(player_name, starter) |>
   summarize(Total_Assists = sum(assists__value)) |>
   arrange(desc(Total_Assists)) |>
-  pivot_wider(names_from = starter, values_from = Total_Assists)
+  pivot_wider(names_from = starter, values_from = Total_Assists) |>
+  mutate(Starter = coalesce(Starter, 0), Substitute = coalesce(Substitute, 0))
+) |>
+  tab_header(
+    title = "Number of Assists by Appearance Type - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League"
+  ) 
 
 ```
+
+To be honest, these goal and assist numbers don't look too hot for a Top-Flight German team that is (supposedly) meant to be a top 2 team in Germany, and a top 12 club in Europe. Luckily, out data (and many other sources of soccer data), track player match ratings for each game, which scale from 1-10. In the FotMob rating system, each player starts their appearance with a 6.0 rating, which increases or decreases based on their actions during the game. Let's take a look at the average match rating across the season for the Dortmund players, and compare them to the other teams:
+
+```{r}
+
+```
+
