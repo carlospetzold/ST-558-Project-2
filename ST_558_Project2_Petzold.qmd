@@ -46,25 +46,30 @@ Let's start light with some 1-way contingency tables to explore our data. Person
 ```{r Dortmund 1-way CT}
 
 #Number of Appearances
-gt(player_matches |>
+dortmund_apps <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   group_by(player_name) |>
   summarize(Appearances = n()) |>
-  arrange(desc(Appearances))) |>
+  arrange(desc(Appearances)) 
+
+gt(dortmund_apps) |>
   tab_header(
     title = "Number of Appearances - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
   ) |>
   cols_label(
     player_name = "Player"
-  )
+    )
 
 #Total number of goals scored
-gt(player_matches |>
+dortmund_goals <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   group_by(player_name) |>
   summarize(Goals = sum(goals__value)) |>
-  arrange(desc(Goals))) |>
+  arrange(desc(Goals)) |>
+  mutate(Goals = coalesce(Goals, 0))
+
+gt(dortmund_goals) |>
   tab_header(
     title = "Number of Goals Scored - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
@@ -75,11 +80,14 @@ gt(player_matches |>
   
 
 #Total number of assists
-gt(player_matches |>
+dortmund_assists <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   group_by(player_name) |>
   summarize(Assists = sum(assists__value)) |>
-  arrange(desc(Assists))) |>
+  arrange(desc(Assists)) |>
+  mutate(Assists = coalesce(Assists, 0))
+
+gt(dortmund_assists) |>
   tab_header(
     title = "Number of Assists - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
@@ -99,7 +107,7 @@ Now let's take a look at the same metrics, but add another layer of detail and s
 ```{r Dortmund 2-way CT}
 
 #Number of Appearances
-gt(player_matches |>
+dortmund_apps_by_sub <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   mutate(starter = if_else(starter == "True", "Starter", "Substitute")) |>
   group_by(player_name, starter) |>
@@ -107,14 +115,16 @@ gt(player_matches |>
   arrange(desc(Appearances)) |>
   pivot_wider(names_from = starter, values_from = Appearances) |>
   mutate(Starter = coalesce(Starter, 0), Substitute = coalesce(Substitute, 0))
-) |>
+
+gt(dortmund_apps_by_sub) |>
   tab_header(
     title = "Number of Appearances by Appearance Type - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
   )  
 
+
 #Total number of goals scored
-gt(player_matches |>
+dortmund_goals_by_sub <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   mutate(starter = if_else(starter == "True", "Starter", "Substitute")) |>
   group_by(player_name, starter) |>
@@ -122,7 +132,8 @@ gt(player_matches |>
   arrange(desc(Total_Goals)) |>
   pivot_wider(names_from = starter, values_from = Total_Goals) |>
   mutate(Starter = coalesce(Starter, 0), Substitute = coalesce(Substitute, 0))
-) |>
+
+gt(dortmund_goals_by_sub) |>
   tab_header(
     title = "Number of Goals by Appearance Type - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
@@ -130,7 +141,7 @@ gt(player_matches |>
 
 
 #Total number of assists
-gt(player_matches |>
+dortmund_assists_by_sub <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   mutate(starter = if_else(starter == "True", "Starter", "Substitute")) |>
   group_by(player_name, starter) |>
@@ -138,7 +149,8 @@ gt(player_matches |>
   arrange(desc(Total_Assists)) |>
   pivot_wider(names_from = starter, values_from = Total_Assists) |>
   mutate(Starter = coalesce(Starter, 0), Substitute = coalesce(Substitute, 0))
-) |>
+
+gt(dortmund_assists_by_sub)  |>
   tab_header(
     title = "Number of Assists by Appearance Type - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
@@ -154,7 +166,7 @@ To be honest, these goal and assist numbers don't look too hot for a Top-Flight 
 
 #Let's start with the average match rating for each player at Dortmund across the season, then the team as a whole:
 
-gt(player_matches |>
+dortmund_avg_match_rating <- player_matches |>
      filter(team_name == "Borussia Dortmund") |>
      drop_na(rating_title__value) |>
      group_by(player_name) |>
@@ -162,8 +174,9 @@ gt(player_matches |>
                avg_match_rating = round(mean(rating_title__value), 2), .groups = "drop"
                ) |>
      arrange(desc(avg_match_rating))
-     
-) |>
+
+
+gt(dortmund_avg_match_rating) |>
   tab_header(
     title = "Average Match Rating - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
@@ -175,7 +188,7 @@ gt(player_matches |>
   )
 
 #Let's also look at these average match ratings as starters and as subs:
-gt(player_matches |>
+dortmund_avg_match_rating_by_sub <- player_matches |>
      filter(team_name == "Borussia Dortmund") |>
      drop_na(rating_title__value) |>
      mutate(
@@ -195,7 +208,8 @@ gt(player_matches |>
        names_from = starter,
        values_from = avg_match_rating
      )
-) |>
+
+gt(dortmund_avg_match_rating_by_sub) |>
   tab_header(
     title = "Average Match Rating - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
@@ -208,7 +222,7 @@ gt(player_matches |>
     columns = c(Starter, Substitute),
     missing_text = "—"
   )
-
+ 
 
 ```
 
@@ -216,15 +230,16 @@ Unfortunately, the data does not contain player ages, but one thing I notice at 
 
 ```{r League Numerical Summaries - Average Rating}
 
-gt(player_matches |>
+league_average_rating <- player_matches |>
      drop_na(rating_title__value) |>
      group_by(team_name) |>
      summarize(num_games = n(),
                avg_match_rating = round(mean(rating_title__value), 2), .groups = "drop"
                ) |>
      arrange(desc(avg_match_rating))
-     
-) |>
+
+
+gt(league_average_rating) |>
   tab_header(
     title = "Average Match Rating - All Teams",
     subtitle = "2025-26 UEFA Champions League"
@@ -243,15 +258,16 @@ It could also be interesting to check out which teams ran the most distance on a
 
 ```{r League Numerical Summaries - Distance and Chances Created}
 
-gt(player_matches |>
+league_avg_distance -> player_matches |>
      drop_na(physical_metrics_distance_covered__value) |>
      group_by(team_name) |>
      summarize(num_games = n(),
                avg_distance_covered = round(mean(physical_metrics_distance_covered__value), 2), .groups = "drop"
                ) |>
      arrange(desc(avg_distance_covered))
-     
-) |>
+
+
+gt(league_avg_distance) |>
   tab_header(
     title = "Average Distance Covered - All Teams",
     subtitle = "2025-26 UEFA Champions League"
@@ -263,15 +279,15 @@ gt(player_matches |>
   )
 
 
-gt(player_matches |>
+league_avg_chances <- player_matches |>
      drop_na(chances_created__value) |>
      group_by(team_name) |>
      summarize(num_games = n(),
                avg_chances = round(mean(chances_created__value), 2), .groups = "drop"
                ) |>
      arrange(desc(avg_chances))
-     
-) |>
+ 
+gt(league_avg_chances) |>
   tab_header(
     title = "Average Chances Created - All Teams",
     subtitle = "2025-26 UEFA Champions League"
@@ -293,4 +309,62 @@ Looking at Dortmund in both cases, they placed 10th in Distance Covered and 19th
 #### Plots
 
 Let's take a look at the above tables and summaries visually:
+
+```{r Dortmund Data Vis}
+
+ggplot(dortmund_apps,
+       aes(x = reorder(player_name, -Appearances),
+           y = Appearances)) +
+  geom_col(fill = "#FDE100", color = "black") +
+  geom_text(aes(label = Appearances), vjust = -0.4) +
+  labs(
+    title = "Number of Appearances - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League",
+    x = "Player",
+    y = "Number of Appearances"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(face = "bold")
+  )
+
+ggplot(dortmund_goals,
+       aes(x = reorder(player_name, -Goals),
+           y = Goals)) +
+  geom_col(fill = "#FDE100", color = "black") +
+  geom_text(aes(label = Goals), vjust = -0.4) +
+  labs(
+    title = "Number of Goals - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League",
+    x = "Player",
+    y = "Number of Goals"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(face = "bold")
+  )
+
+ggplot(dortmund_assists,
+       aes(x = reorder(player_name, -Assists),
+           y = Assists)) +
+  geom_col(fill = "#FDE100", color = "black") +
+  geom_text(aes(label = Assists), vjust = -0.4) +
+  labs(
+    title = "Number of Assists - Borussia Dortmund",
+    subtitle = "2025-26 UEFA Champions League",
+    x = "Player",
+    y = "Number of Assists"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1))) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    plot.title = element_text(face = "bold")
+  )
+
+```
 
