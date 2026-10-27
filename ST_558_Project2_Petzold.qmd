@@ -258,7 +258,7 @@ It could also be interesting to check out which teams ran the most distance on a
 
 ```{r League Numerical Summaries - Distance and Chances Created}
 
-league_avg_distance -> player_matches |>
+league_avg_distance <- player_matches |>
      drop_na(physical_metrics_distance_covered__value) |>
      group_by(team_name) |>
      summarize(num_games = n(),
@@ -306,11 +306,13 @@ The table for chances created is a different story. Chances created translate to
 
 Looking at Dortmund in both cases, they placed 10th in Distance Covered and 19th in Chances Created...lots of running but very little chance creation. Not the best formula for success, and certainly not the best formula for keeping players motivated to win. The last thing any player wants is to be running the entire game with little to no opportunities to put chances away. Hopefully things improve this season, but for now, the running will continue until chance creation improves...
 
-#### Plots
+### Plots
 
 Let's take a look at the above tables and summaries visually:
 
-```{r Dortmund Data Vis}
+#### Bar Charts
+
+```{r Dortmund Data Vis Bar Charts}
 
 #We'll start with some basic bar charts
 
@@ -454,6 +456,88 @@ dortmund_assists_plot <- dortmund_assists_by_sub |>
   scale_y_continuous(breaks = scales::breaks_width(1))
 
 dortmund_assists_plot
+
+```
+
+#### Boxplot and Dumbbell Plot
+
+```{r Dortmund Data Vis Boxplot and Dumbell Plot}
+
+dortmund_boxplot <- player_matches |>
+  filter(team_name == "Borussia Dortmund") |>
+  drop_na(rating_title__value) |>
+  ggplot(aes(
+    x = reorder(player_name, rating_title__value, FUN = median),
+    y = rating_title__value
+  )) +
+  geom_boxplot(fill = "#FDE100", color = "black") +
+  geom_jitter(
+    width = 0.15,
+    alpha = 0.4,
+    color = "black"
+  ) +
+  coord_flip() +
+  labs(
+    title = "Distribution of Match Ratings by Player",
+    subtitle = "Borussia Dortmund | 2025-26 UEFA Champions League",
+    x = "Player",
+    y = "Match Rating"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold")
+  )
+
+dortmund_boxplot
+
+dortmund_dumbbell <- dortmund_avg_match_rating_by_sub |>
+  filter(!is.na(Starter), !is.na(Substitute)) |>
+  mutate(
+    player_name = reorder(player_name, Starter)
+  ) |>
+  ggplot(aes(y = player_name)) +
+  geom_segment(
+    aes(x = Starter, xend = Substitute,
+        yend = player_name),
+    color = "gray60",
+    linewidth = 1
+  ) +
+  geom_point(
+    aes(x = Starter, color = "Starter"),
+    size = 3
+  ) +
+  geom_point(
+    aes(x = Substitute, color = "Substitute"),
+    size = 3
+  ) +
+  scale_color_manual(
+    values = c(
+      "Starter" = "#E0B900",
+      "Substitute" = "#555555"
+    )
+  ) +
+  labs(
+    title = "Average Match Rating: Starter vs. Substitute",
+    subtitle = "Borussia Dortmund | 2025-26 UEFA Champions League",
+    x = "Average Match Rating",
+    y = "Player",
+    color = "Appearance Type"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold"),
+    legend.position = "bottom"
+  )
+
+dortmund_dumbbell
+
+```
+
+#### Scatterplot
+
+```{r League Data Vis Scatterplot}
+
+
 
 ```
 
