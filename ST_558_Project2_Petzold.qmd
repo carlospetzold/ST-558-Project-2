@@ -312,6 +312,8 @@ Let's take a look at the above tables and summaries visually:
 
 ```{r Dortmund Data Vis}
 
+#We'll start with some basic bar charts
+
 ggplot(dortmund_apps,
        aes(x = reorder(player_name, -Appearances),
            y = Appearances)) +
@@ -365,6 +367,93 @@ ggplot(dortmund_assists,
     axis.text.x = element_text(angle = 45, hjust = 1),
     plot.title = element_text(face = "bold")
   )
+
+
+#Now some faceted bar charts to seperate our values by appearances as starters or substitutes:
+
+dortmund_apps_plot <- dortmund_apps_by_sub |>
+  pivot_longer(
+    cols = c(Starter, Substitute),
+    names_to = "Appearance_Type",
+    values_to = "Appearances"
+  ) |>
+  ggplot(aes(
+    x = reorder(player_name, Appearances),
+    y = Appearances
+  )) +
+  geom_col(fill = "#FDE100", color = "black") +
+  facet_wrap(~Appearance_Type, ncol = 2) +
+  coord_flip() +
+  labs(
+    title = "Number of Appearances by Appearance Type",
+    subtitle = "Borussia Dortmund | 2025-26 UEFA Champions League",
+    x = "Player",
+    y = "Number of Appearances"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold"),
+    strip.text = element_text(face = "bold")
+  ) +
+  scale_y_continuous(breaks = scales::breaks_width(1))
+
+dortmund_apps_plot
+
+dortmund_goals_plot <- dortmund_goals_by_sub |>
+  pivot_longer(
+    cols = c(Starter, Substitute),
+    names_to = "Appearance_Type",
+    values_to = "Goals"
+  ) |>
+  ggplot(aes(
+    x = reorder(player_name, Goals),
+    y = Goals
+  )) +
+  geom_col(fill = "#FDE100", color = "black") +
+  facet_wrap(~Appearance_Type, ncol = 2) +
+  coord_flip() +
+  labs(
+    title = "Goals Scored by Appearance Type",
+    subtitle = "Borussia Dortmund | 2025-26 UEFA Champions League",
+    x = "Player",
+    y = "Goals"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold"),
+    strip.text = element_text(face = "bold")
+  ) +
+  scale_y_continuous(breaks = scales::breaks_width(1))
+
+dortmund_goals_plot
+
+dortmund_assists_plot <- dortmund_assists_by_sub |>
+  pivot_longer(
+    cols = c(Starter, Substitute),
+    names_to = "Appearance_Type",
+    values_to = "Assists"
+  ) |>
+  ggplot(aes(
+    x = reorder(player_name, Assists),
+    y = Assists
+  )) +
+  geom_col(fill = "#FDE100", color = "black") +
+  facet_wrap(~Appearance_Type, ncol = 2) +
+  coord_flip() +
+  labs(
+    title = "Assists by Appearance Type",
+    subtitle = "Borussia Dortmund | 2025-26 UEFA Champions League",
+    x = "Player",
+    y = "Assists"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold"),
+    strip.text = element_text(face = "bold")
+  ) +
+  scale_y_continuous(breaks = scales::breaks_width(1))
+
+dortmund_assists_plot
 
 ```
 
