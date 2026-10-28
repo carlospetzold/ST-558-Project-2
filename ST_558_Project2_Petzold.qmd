@@ -66,7 +66,7 @@ gt(dortmund_apps) |>
 dortmund_goals <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   group_by(player_name) |>
-  summarize(Goals = sum(goals__value)) |>
+  summarize(Goals = sum(goals__value, na.rm = TRUE), .groups = "drop") |>
   arrange(desc(Goals)) |>
   mutate(Goals = coalesce(Goals, 0))
 
@@ -84,7 +84,7 @@ gt(dortmund_goals) |>
 dortmund_assists <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   group_by(player_name) |>
-  summarize(Assists = sum(assists__value)) |>
+  summarize(Assists = sum(assists__value, na.rm = TRUE), .groups = "drop") |>
   arrange(desc(Assists)) |>
   mutate(Assists = coalesce(Assists, 0))
 
@@ -112,7 +112,7 @@ dortmund_apps_by_sub <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   mutate(starter = if_else(starter == "True", "Starter", "Substitute")) |>
   group_by(player_name, starter) |>
-  summarize(Appearances = n()) |>
+  summarize(Appearances = n(), .groups = "drop") |>
   arrange(desc(Appearances)) |>
   pivot_wider(names_from = starter, values_from = Appearances) |>
   mutate(Starter = coalesce(Starter, 0), Substitute = coalesce(Substitute, 0))
@@ -121,7 +121,10 @@ gt(dortmund_apps_by_sub) |>
   tab_header(
     title = "Number of Appearances by Appearance Type - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
-  )  
+  ) |>
+  cols_label(
+    player_name = "Player"
+  ) 
 
 
 #Total number of goals scored
@@ -129,7 +132,7 @@ dortmund_goals_by_sub <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   mutate(starter = if_else(starter == "True", "Starter", "Substitute")) |>
   group_by(player_name, starter) |>
-  summarize(Total_Goals = sum(goals__value)) |>
+  summarize(Total_Goals = sum(goals__value, na.rm = TRUE), .groups = "drop") |>
   arrange(desc(Total_Goals)) |>
   pivot_wider(names_from = starter, values_from = Total_Goals) |>
   mutate(Starter = coalesce(Starter, 0), Substitute = coalesce(Substitute, 0))
@@ -138,6 +141,9 @@ gt(dortmund_goals_by_sub) |>
   tab_header(
     title = "Number of Goals by Appearance Type - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
+  ) |>
+  cols_label(
+    player_name = "Player"
   ) 
 
 
@@ -146,7 +152,7 @@ dortmund_assists_by_sub <- player_matches |>
   filter(team_name == "Borussia Dortmund") |>
   mutate(starter = if_else(starter == "True", "Starter", "Substitute")) |>
   group_by(player_name, starter) |>
-  summarize(Total_Assists = sum(assists__value)) |>
+  summarize(Total_Assists = sum(assists__value, na.rm = TRUE), .groups = "drop") |>
   arrange(desc(Total_Assists)) |>
   pivot_wider(names_from = starter, values_from = Total_Assists) |>
   mutate(Starter = coalesce(Starter, 0), Substitute = coalesce(Substitute, 0))
@@ -155,6 +161,9 @@ gt(dortmund_assists_by_sub)  |>
   tab_header(
     title = "Number of Assists by Appearance Type - Borussia Dortmund",
     subtitle = "2025-26 UEFA Champions League"
+  ) |>
+  cols_label(
+    player_name = "Player"
   ) 
 
 ```
