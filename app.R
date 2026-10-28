@@ -33,10 +33,10 @@ numeric_vars <- c(
 
 
 # User Interface Settings
-ui <- fluidPage(
+ui <- page_sidebar(
 
     # Application title
-    titlePanel("2025-26 UEFA Champions League Explorer"),
+    title = "2025-26 UEFA Champions League Explorer",
     
     #Sidebar
     sidebar = sidebar(
@@ -110,6 +110,85 @@ ui <- fluidPage(
 
 # Server Settings
 server <- function(input, output) {
+  
+  #Create first numeric slider
+  output$numeric_slider1 <- renderUI({
+    
+    req(input$numeric_var1)
+    
+    values <- player_matches[[input$numeric_var1]]
+    values <- values[is.finite(values)]
+    
+    req(length(values) > 0)
+    
+    sliderInput(
+      inputId = "numeric_range1",
+      label = "Select Range:",
+      min = min(values),
+      max = max(values),
+      value = range(values),
+      step = if (input$numeric_var1 %in% c("goals__value", "assists__value", "chances_created__value")) 1 else NULL
+    )
+  })
+  
+  #Create second numeric slider
+  output$numeric_slider2 <- renderUI({
+    
+    req(input$numeric_var2)
+    
+    values <- player_matches[[input$numeric_var2]]
+    values <- values[is.finite(values)]
+    
+    req(length(values) > 0)
+    
+    sliderInput(
+      inputId = "numeric_range2",
+      label = "Select Range:",
+      min = min(values),
+      max = max(values),
+      value = range(values),
+      step = if (input$numeric_var2 %in% c("goals__value", "assists__value", "chances_created__value")) 1 else NULL
+    )
+  })
+  
+  # Data updates only when Apply Filters is pressed
+  filtered_data <- eventReactive(input$apply_filters, {
+    
+    req(input$team_filter)
+    req(input$starter_filter)
+    req(input$numeric_range1, input$numeric_range2)
+    
+    data <- player_matches |>
+      filter(
+        team_name %in% input$team_filter,
+        starter %in% input$starter_filter
+      )
+    
+    var1 <- input$numeric_var1
+    var2 <- input$numeric_var2
+    
+    range1 <- input$numeric_range1
+    range2 <- input$numeric_range2
+    
+    data |>
+      filter(
+        !is.na(.data[[var1]]),
+        .data[[var1]] >= range1[1],
+        .data[[var1]] <= range1[2],
+        !is.na(.data[[var2]]),
+        .data[[var2]] >= range2[1],
+        .data[[var2]] <= range2[2]
+      )
+    
+  }, ignoreNULL = FALSE)
+  
+  # Display number of observations after filtering
+  output$row_count <- renderText({
+    paste(
+      "Number of player-match observations:",
+      nrow(filtered_data())
+    )
+  })
 
 }
 
