@@ -46,9 +46,15 @@ ui <- page_sidebar(
         inputId = "team_filter",
         label = "Select Team(s)",
         choices = sort(unique(na.omit(player_matches$team_name))),
-        selected = sort(unique(na.omit(player_matches$team_name))),
+        selected = "Borussia Dortmund",
         multiple = TRUE
         ),
+      
+      checkboxInput(
+        inputId = "all_teams",
+        label = "Select All Teams",
+        value = FALSE
+      )
       
       checkboxGroupInput(
         inputId = "starter_filter",
@@ -98,7 +104,8 @@ ui <- page_sidebar(
       nav_panel(
         "Data Download",
         h3("Explore and Download Data"),
-        textOutput("row_count")
+        textOutput("row_count"),
+        DT::dataTableOutput("filtered_table")
       ),
       
       nav_panel(
@@ -109,7 +116,7 @@ ui <- page_sidebar(
 )
 
 # Server Settings
-server <- function(input, output) {
+server <- function(input, output, session) {
   
   #Create first numeric slider
   output$numeric_slider1 <- renderUI({
@@ -154,33 +161,55 @@ server <- function(input, output) {
   # Data updates only when Apply Filters is pressed
   filtered_data <- eventReactive(input$apply_filters, {
     
-    req(input$team_filter)
-    req(input$starter_filter)
     req(input$numeric_range1, input$numeric_range2)
     
-    data <- player_matches |>
+    data <- player_matches
+    
+    # Filter by selected teams
+    data <- data |>
+      filter(team_name %in% input$team_filter)
+    
+    # Filter by appearance type
+    data <- data |>
+      filter(starter %in% input$starter_filter)
+    
+    # Apply first numeric filter
+    var1 <- input$numeric_var1
+    range1 <- input$numeric_range1
+    
+    data <- data |>
       filter(
-        team_name %in% input$team_filter,
-        starter %in% input$starter_filter
+        between(.data[[var1]], range1[1], range1[2])
       )
     
-    var1 <- input$numeric_var1
+    # Apply second numeric filter
     var2 <- input$numeric_var2
-    
-    range1 <- input$numeric_range1
     range2 <- input$numeric_range2
     
-    data |>
+    data <- data |>
       filter(
-        !is.na(.data[[var1]]),
-        .data[[var1]] >= range1[1],
-        .data[[var1]] <= range1[2],
-        !is.na(.data[[var2]]),
-        .data[[var2]] >= range2[1],
-        .data[[var2]] <= range2[2]
+        between(.data[[var2]], range2[1], range2[2])
       )
     
-  }, ignoreNULL = FALSE)
+    # Debugging messages
+    print(paste("Apply Filters clicked:", input$apply_filters))
+    print(paste("Selected teams:", paste(input$team_filter, collapse = ", ")))
+    print(paste("Rows remaining:", nrow(data)))
+    
+    data
+    
+  }, ignoreInit = FALSE)
+  
+  output$filtered_table <- DT::renderDataTable({
+    DT::datatable(
+      filtered_data(),
+      options = list(
+        pageLength = 10,
+        scrollX = TRUE
+      ),
+      rownames = FALSE
+    )
+  })
   
   # Display number of observations after filtering
   output$row_count <- renderText({
