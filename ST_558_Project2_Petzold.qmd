@@ -23,12 +23,7 @@ library(ggrepel)
 
 ### Download Data
 
-We are pulling in 2 separate data sets below:
-
-1) Player Matches: This data set contains match-level information from our 2025-26 UCL season for each player that registered at least 1 appearance. This includes information like player rating, minutes played, goals scored, expected goals, etc. 
-
-2) Player Season: This data set contains season-level information from our UCL season for each player that registered at least 1 appearance. This includes information like total number of goals, total minutes played, expected goals per 90 minutes, etc. 
-
+We are pulling in individual player match data. This data set contains match-level information from our 2025-26 UCL season for each player that registered at least 1 appearance. This includes information like player rating, minutes played, goals scored, expected goals, etc. 
 
 ```{r Pull data}
 
@@ -40,7 +35,6 @@ player_season <- read.csv("data/player_season.csv")
 ### Static Exploration
 
 Let's start light with some 1-way contingency tables to explore our data. Personally, I am a fan of Borussia Dortmund, who are a German Club in the Bundesliga, which is the highest division in German professional soccer. I am interested in the number of appearances, number of goals, and number of assists held by every player on the team:
-
 
 #### 1-Way Contingency Tables
 
@@ -328,7 +322,7 @@ Looking at Dortmund in both cases, they placed 10th in Distance Covered and 19th
 
 ### Plots
 
-Let's take a look at the above tables and summaries visually:
+Let's take a look at the above tables and summaries visually. Note that in this static file, I focus primarily on Dortmund, but the shiny app will allow the user to select whichever team they like:
 
 #### Bar Charts
 
@@ -388,8 +382,16 @@ ggplot(dortmund_assists,
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     plot.title = element_text(face = "bold")
-  )
+  ) +
+  scale_y_continuous(breaks = scales::breaks_width(1))
 
+
+
+```
+
+Now let's seperate these by starters and substitute using faceting on our bar charts:
+
+```{r Dortmund Data Vis - Facted Bar Charts}
 
 #Now some faceted bar charts to seperate our values by appearances as starters or substitutes:
 
