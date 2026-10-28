@@ -17,6 +17,7 @@ Let's start by downloading the data into our session:
 library(utils)
 library(tidyverse)
 library(gt)
+library(ggrepel)
 
 ```
 
@@ -231,23 +232,33 @@ Unfortunately, the data does not contain player ages, but one thing I notice at 
 ```{r League Numerical Summaries - Average Rating}
 
 league_average_rating <- player_matches |>
-     drop_na(rating_title__value) |>
-     group_by(team_name) |>
-     summarize(num_games = n(),
-               avg_match_rating = round(mean(rating_title__value), 2), .groups = "drop"
-               ) |>
-     arrange(desc(avg_match_rating))
+  drop_na(rating_title__value) |>
+  group_by(team_name) |>
+  summarize(
+    num_ratings = n(),
+    avg_match_rating = round(mean(rating_title__value), 2),
+    median_match_rating = round(median(rating_title__value), 2),
+    sd_match_rating = round(sd(rating_title__value), 2),
+    min_match_rating = min(rating_title__value),
+    max_match_rating = max(rating_title__value),
+    .groups = "drop"
+  ) |>
+  arrange(desc(avg_match_rating))
 
 
 gt(league_average_rating) |>
   tab_header(
-    title = "Average Match Rating - All Teams",
+    title = "Match Rating Summaries - All Teams",
     subtitle = "2025-26 UEFA Champions League"
   ) |>
   cols_label(
     team_name = "Team",
     avg_match_rating = "Average Match Rating",
-    num_games = "# of Match Ratings"
+    num_ratings = "# of Match Ratings",
+    median_match_rating = "Median Match Rating",
+    sd_match_rating = "Match Rating Standard Deviation",
+    min_match_rating = "Lowest Match Rating by 1 Player",
+    max_match_rating = "Highest Match Rating by 1 Player",
   )
 
 ```
@@ -536,6 +547,125 @@ dortmund_dumbbell
 #### Scatterplot
 
 ```{r League Data Vis Scatterplot}
+
+league_summary <- league_average_rating |>
+  select(team_name, avg_match_rating) |>
+  left_join(
+    league_avg_distance |>
+      select(team_name, avg_distance_covered),
+    by = "team_name"
+  ) |>
+  left_join(
+    league_avg_chances |>
+      select(team_name, avg_chances),
+    by = "team_name"
+  )
+
+league_distance_rating_plot <- league_summary |>
+  ggplot(aes(
+    x = avg_distance_covered,
+    y = avg_match_rating
+  )) +
+  geom_point(
+    color = "#E0B900",
+    size = 3,
+    alpha = 0.8
+  ) +
+  geom_smooth(
+    method = "lm",
+    se = TRUE,
+    color = "black",
+    linetype = "dashed"
+  ) +
+  labs(
+    title = "Average Distance Covered vs. Average Match Rating",
+    subtitle = "2025-26 UEFA Champions League",
+    x = "Average Distance Covered Per Player Per Match (km)",
+    y = "Average Match Rating"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold")
+  )
+
+league_distance_rating_plot +
+  ggrepel::geom_text_repel(
+    aes(label = team_name),
+    size = 3,
+    max.overlaps = 20
+  )
+
+```
+
+#### Heatmap
+
+```{r League Data Vis Heatmap, fig.width=10, fig.height=12}
+
+league_heatmap_data <- league_summary |>
+  pivot_longer(
+    cols = c(
+      avg_match_rating,
+      avg_distance_covered,
+      avg_chances
+    ),
+    names_to = "Metric",
+    values_to = "Value"
+  ) |>
+  group_by(Metric) |>
+  mutate(
+    Standardized_Value = if (
+      all(is.na(Value)) ||
+      is.na(sd(Value, na.rm = TRUE)) ||
+      sd(Value, na.rm = TRUE) == 0
+    ) {
+      NA_real_
+    } else {
+      as.numeric(scale(Value))
+    }
+  ) |>
+  ungroup() |>
+  mutate(
+    Metric = recode(
+      Metric,
+      avg_match_rating = "Average Match Rating",
+      avg_distance_covered = "Average Distance Covered",
+      avg_chances = "Average Chances Created"
+    )
+  )
+
+team_order <- league_summary |>
+  arrange(avg_match_rating) |>
+  pull(team_name)
+
+league_heatmap_plot <- league_heatmap_data |>
+  ggplot(aes(
+    x = Metric,
+    y = factor(team_name, levels = team_order),
+    fill = Standardized_Value
+)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(
+    low = "#555555",
+    mid = "white",
+    high = "#FDE100",
+    midpoint = 0,
+    na.value = "gray90"
+  ) +
+  labs(
+    title = "Team Performance Across Key Metrics",
+    subtitle = "2025-26 UEFA Champions League",
+    x = "Performance Metric",
+    y = "Team",
+    fill = "Standardized\nValue"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 30, hjust = 1),
+    panel.grid = element_blank()
+  )
+
+league_heatmap_plot
 
 
 
