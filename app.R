@@ -159,6 +159,12 @@ ui <- page_sidebar(
         
         h4("UEFA Champions League"),
         
+        tags$img(
+          src = "ucl.png",
+          alt = "Champions League",
+          style = "max-width: 100%; max-height: 300px;"
+        ),
+        
         tags$a(
           "View the original data source",
           href = "https://www.fotmob.com/leagues/42/overview/champions-league",
@@ -397,7 +403,7 @@ server <- function(input, output, session) {
     if (isTRUE(input$enable_num2)) {
       data <- data |>
         filter(
-          between(.data[[var1]], range1[1], range1[2])
+          between(.data[[var2]], range2[1], range2[2])
         )
     }
     
