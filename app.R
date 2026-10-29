@@ -31,9 +31,17 @@ numeric_vars <- c(
   "Chances Created" = "chances_created__value"
 )
 
+#categorical variables
+categorical_vars <- c(
+  "Team" = "team_name",
+  "Player" = "player_name",
+  "Appearance Type" = "starter"
+)
+
 
 # User Interface Settings
 ui <- page_sidebar(
+    fillable = FALSE,
 
     # Application title
     title = "2025-26 UEFA Champions League Explorer",
@@ -173,7 +181,104 @@ ui <- page_sidebar(
       
       nav_panel(
         "Data Exploration",
-        h3("Statistical Summaries and Visualizations")
+        
+        h3("Statistical Summaries and Visualizations"),
+        
+        h4("Categorical Summaries"),
+        
+        selectInput(
+          inputId = "contingency_type",
+          label = "Select Contingency Table Type:",
+          choices = c(
+            "One-way" = "one",
+            "Two-way" = "two"
+          )
+        ),
+        
+        selectInput(
+          inputId = "cat_var1",
+          label = "First Categorical Variable:",
+          choices = categorical_vars,
+          selected = "team_name"
+        ),
+        
+        conditionalPanel(
+          condition = "input.contingency_type == 'two'",
+          
+          selectInput(
+            inputId = "cat_var2",
+            label = "Second Categorical Variable:",
+            choices = categorical_vars,
+            selected = "starter"
+          )
+        ),
+        
+        DT::dataTableOutput("categorical_table"),
+        
+        hr(),
+        
+        h4("Numerical Summaries"),
+        
+        selectInput(
+          inputId = "summary_numeric",
+          label = "Select Numeric Variable:",
+          choices = numeric_vars,
+          selected = "rating_title__value"
+        ),
+        
+        selectInput(
+          inputId = "summary_group",
+          label = "Summarize Across:",
+          choices = categorical_vars,
+          selected = "team_name"
+        ),
+        
+        DT::dataTableOutput("numerical_table"),
+        
+        hr(),
+        
+        h4("Graphical Summaries"),
+        
+        selectInput(
+          inputId = "plot_type",
+          label = "Select Plot Type:",
+          choices = c(
+            "Bar Chart" = "bar",
+            "Faceted Bar Chart" = "faceted",
+            "Boxplot" = "box"
+          )
+        ),
+        
+        selectInput(
+          inputId = "plot_group",
+          label = "Group By:",
+          choices = c(
+            "Player" = "player_name",
+            "Team" = "team_name"
+          ),
+          selected = "player_name"
+        ),
+        
+        selectInput(
+          inputId = "plot_metric",
+          label = "Select Statistic:",
+          choices = c(
+            "Appearances" = "Appearances",
+            "Goals" = "goals__value",
+            "Assists" = "assists__value",
+            "Match Rating" = "rating_title__value",
+            "Distance Covered (km)" = "physical_metrics_distance_covered__value",
+            "Chances Created" = "chances_created__value"
+          ),
+          selected = "Appearances"
+        ),
+        
+        plotOutput(
+          outputId = "exploration_plot",
+          height = "800px",
+          width = "900px",
+          fill = FALSE
+        )
       )
    )
 )
@@ -306,6 +411,8 @@ server <- function(input, output, session) {
     }
   )
   
+  
+  
   output$filtered_table <- DT::renderDataTable({
     DT::datatable(
       filtered_data(),
@@ -323,6 +430,241 @@ server <- function(input, output, session) {
       "Number of player-match observations:",
       nrow(filtered_data())
     )
+  })
+  
+  # Categorical summaries
+  output$categorical_table <- DT::renderDataTable({
+    
+    data <- filtered_data()
+    
+    validate(
+      need(nrow(data) > 0,
+           "No observations meet the selected filters.")
+    )
+    
+    var1 <- input$cat_var1
+    
+    if (input$contingency_type == "one") {
+      
+      # One-way frequency table
+      result <- data |>
+        count(.data[[var1]], name = "Frequency") |>
+        mutate(
+          Percentage = round(
+            100 * Frequency / sum(Frequency), 2
+          )
+        ) |>
+        arrange(desc(Frequency))
+      
+    } else {
+      
+      # Two-way contingency table
+      var2 <- input$cat_var2
+      
+      validate(
+        need(var1 != var2,
+             "Please select two different categorical variables.")
+      )
+      
+      result <- data |>
+        count(.data[[var1]], .data[[var2]],
+              name = "Frequency") |>
+        pivot_wider(
+          names_from = all_of(var2),
+          values_from = Frequency,
+          values_fill = 0
+        )
+    }
+    
+    DT::datatable(
+      result,
+      options = list(
+        pageLength = 15,
+        scrollX = TRUE
+      ),
+      rownames = FALSE
+    )
+  })
+  
+  # Numerical summaries
+  output$numerical_table <- DT::renderDataTable({
+    
+    data <- filtered_data()
+    
+    validate(
+      need(nrow(data) > 0,
+           "No observations meet the selected filters.")
+    )
+    
+    variable <- input$summary_numeric
+    grouping <- input$summary_group
+    
+    result <- data |>
+      group_by(.data[[grouping]]) |>
+      summarize(
+        N = sum(!is.na(.data[[variable]])),
+        
+        Mean = round(
+          mean(.data[[variable]], na.rm = TRUE), 2
+        ),
+        
+        Median = round(
+          median(.data[[variable]], na.rm = TRUE), 2
+        ),
+        
+        SD = round(
+          sd(.data[[variable]], na.rm = TRUE), 2
+        ),
+        
+        Minimum = if (all(is.na(.data[[variable]]))) {
+          NA_real_
+        } else {
+          min(.data[[variable]], na.rm = TRUE)
+        },
+        
+        Maximum = if (all(is.na(.data[[variable]]))) {
+          NA_real_
+        } else {
+          max(.data[[variable]], na.rm = TRUE)
+        },
+        
+        .groups = "drop"
+      ) |>
+      arrange(desc(Mean))
+    
+    DT::datatable(
+      result,
+      options = list(
+        pageLength = 15,
+        scrollX = TRUE
+      ),
+      rownames = FALSE
+    )
+  })
+  
+  # Interactive graphical summaries
+  output$exploration_plot <- renderPlot({
+    
+    data <- filtered_data()
+    
+    validate(
+      need(nrow(data) > 0,
+           "No observations meet the selected filters.")
+    )
+    
+    grouping <- input$plot_group
+    metric <- input$plot_metric
+    
+    # Calculate the requested statistic
+    if (input$plot_type == "bar") {
+      
+      # Regular bar chart
+      summary_data <- data |>
+        group_by(group_name = .data[[grouping]]) |>
+        summarize(
+          Value = if (metric == "Appearances") {
+            n()
+          } else {
+            sum(.data[[metric]], na.rm = TRUE)
+          },
+          .groups = "drop"
+        )
+      
+      ggplot(summary_data,
+             aes(x = reorder(group_name, Value),
+                 y = Value)) +
+        geom_col(fill = "#FDE100", color = "black") +
+        coord_flip() +
+        scale_y_continuous(breaks = scales::breaks_width(1)) +
+        labs(
+          title = "Player and Team Performance",
+          subtitle = "2025-26 UEFA Champions League",
+          x = NULL,
+          y = "Total"
+        ) +
+        theme_minimal()
+      
+    } else if (input$plot_type == "faceted") {
+      
+      # Calculate statistics by appearance type
+      summary_data <- data |>
+        filter(!is.na(starter)) |>
+        group_by(group_name = .data[[grouping]], starter) |>
+        summarize(
+          Value = if (metric == "Appearances") {
+            n()
+          } else {
+            sum(.data[[metric]], na.rm = TRUE)
+          },
+          .groups = "drop"
+        )
+      
+      # Create faceted bar chart
+      ggplot(summary_data,
+             aes(x = reorder(group_name, Value),
+                 y = Value)) +
+        geom_col(fill = "#FDE100", color = "black") +
+        facet_wrap(~starter, ncol = 2) +
+        coord_flip() +
+        scale_y_continuous(breaks = scales::breaks_width(1)) +
+        labs(
+          title = "Performance by Appearance Type",
+          subtitle = "2025-26 UEFA Champions League",
+          x = NULL,
+          y = "Total"
+        ) +
+        theme_minimal() +
+        theme(
+          strip.text = element_text(face = "bold")
+        )
+    } else if (input$plot_type == "box") {
+      
+      # Boxplots require individual observations
+      # rather than summarized totals
+      
+      validate(
+        need(
+          metric != "Appearances",
+          "Please select a numeric match-level variable."
+        )
+      )
+      
+      plot_data <- data |>
+        filter(!is.na(.data[[metric]]))
+      
+      validate(
+        need(
+          nrow(plot_data) > 0,
+          "No observations available for this variable."
+        )
+      )
+      
+      ggplot(
+        plot_data,
+        aes(
+          x = reorder(.data[[grouping]],
+                      .data[[metric]], FUN = median),
+          y = .data[[metric]]
+        )
+      ) +
+        geom_boxplot(
+          fill = "#FDE100",
+          color = "black"
+        ) +
+        geom_jitter(
+          width = 0.15,
+          alpha = 0.3
+        ) +
+        coord_flip() +
+        labs(
+          title = "Distribution of Player and Team Performance",
+          subtitle = "2025-26 UEFA Champions League",
+          x = NULL,
+          y = metric
+        ) +
+        theme_minimal()
+    }
+    
   })
 
 }
