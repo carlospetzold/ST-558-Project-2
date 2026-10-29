@@ -245,7 +245,10 @@ ui <- page_sidebar(
           choices = c(
             "Bar Chart" = "bar",
             "Faceted Bar Chart" = "faceted",
-            "Boxplot" = "box"
+            "Boxplot" = "box",
+            "Dumbbell Plot" = "dumbbell",
+            "Scatterplot" = "scatter",
+            "Heatmap" = "heatmap"
           )
         ),
         
@@ -271,6 +274,17 @@ ui <- page_sidebar(
             "Chances Created" = "chances_created__value"
           ),
           selected = "Appearances"
+        ),
+        
+        conditionalPanel(
+          condition = "input.plot_type == 'scatter'",
+          
+          selectInput(
+            inputId = "plot_metric2",
+            label = "Select Y-Axis Variable:",
+            choices = numeric_vars,
+            selected = "rating_title__value"
+          )
         ),
         
         plotOutput(
@@ -663,9 +677,231 @@ server <- function(input, output, session) {
           y = metric
         ) +
         theme_minimal()
+    } else if (input$plot_type == "dumbbell") {
+      
+      # Plot 4: Dumbbell plot
+      
+      validate(
+        need(metric != "Appearances",
+             "Select a numeric match-level variable.")
+      )
+      
+      summary_data <- data |>
+        filter(
+          !is.na(starter),
+          !is.na(.data[[metric]])
+        ) |>
+        group_by(
+          group_name = .data[[grouping]],
+          starter
+        ) |>
+        summarize(
+          Average = mean(.data[[metric]]),
+          .groups = "drop"
+        ) |>
+        mutate(
+          starter = factor(
+            starter,
+            levels = c("Starter", "Substitute")
+          )
+        ) |>
+        pivot_wider(
+          names_from = starter,
+          values_from = Average,
+          names_expand = TRUE
+        ) |>
+        filter(
+          !is.na(Starter),
+          !is.na(Substitute)
+        )
+      
+      validate(
+        need(nrow(summary_data) > 0,
+             "No groups have observations in both appearance types.")
+      )
+      
+      ggplot(
+        summary_data,
+        aes(y = reorder(group_name, Starter))
+      ) +
+        geom_segment(
+          aes(
+            x = Starter,
+            xend = Substitute,
+            yend = reorder(group_name, Starter)
+          ),
+          color = "gray60",
+          linewidth = 1
+        ) +
+        geom_point(
+          aes(x = Starter, color = "Starter"),
+          size = 3
+        ) +
+        geom_point(
+          aes(x = Substitute, color = "Substitute"),
+          size = 3
+        ) +
+        scale_color_manual(
+          values = c(
+            "Starter" = "#E0B900",
+            "Substitute" = "#555555"
+          )
+        ) +
+        labs(
+          title = "Average Performance: Starter vs. Substitute",
+          subtitle = "2025-26 UEFA Champions League",
+          x = "Average Value",
+          y = NULL,
+          color = "Appearance Type"
+        ) +
+        theme_minimal() +
+        theme(
+          plot.title = element_text(face = "bold"),
+          legend.position = "bottom"
+        )
+      
+    } else if (input$plot_type == "scatter") {
+      
+      # Plot 5: Scatterplot
+      
+      validate(
+        need(metric != "Appearances",
+             "Select a numeric match-level variable for the X-axis.")
+      )
+      
+      metric2 <- input$plot_metric2
+      
+      validate(
+        need(metric != metric2,
+             "Select two different numeric variables.")
+      )
+      
+      # Calculate average values by selected group
+      summary_data <- data |>
+        group_by(group_name = .data[[grouping]]) |>
+        summarize(
+          X = mean(.data[[metric]], na.rm = TRUE),
+          Y = mean(.data[[metric2]], na.rm = TRUE),
+          .groups = "drop"
+        ) |>
+        filter(is.finite(X), is.finite(Y))
+      
+      validate(
+        need(nrow(summary_data) >= 2,
+             "At least two groups with available data are required.")
+      )
+      
+      ggplot(summary_data, aes(x = X, y = Y)) +
+        geom_point(
+          color = "#E0B900",
+          size = 3,
+          alpha = 0.8
+        ) +
+        geom_smooth(
+          method = "lm",
+          se = FALSE,
+          color = "black",
+          linetype = "dashed"
+        ) +
+        labs(
+          title = "Relationship Between Performance Metrics",
+          subtitle = "2025-26 UEFA Champions League",
+          x = paste("Average", metric),
+          y = paste("Average", metric2)
+        ) +
+        theme_minimal() +
+        theme(
+          plot.title = element_text(face = "bold")
+        )
+      
+    } else if (input$plot_type == "heatmap") {
+      
+      # Plot 6: Heatmap
+      
+      summary_data <- data |>
+        group_by(group_name = .data[[grouping]]) |>
+        summarize(
+          Match_Rating = mean(
+            rating_title__value, na.rm = TRUE
+          ),
+          Distance = mean(
+            physical_metrics_distance_covered__value,
+            na.rm = TRUE
+          ),
+          Chances = mean(
+            chances_created__value, na.rm = TRUE
+          ),
+          .groups = "drop"
+        ) |>
+        pivot_longer(
+          cols = c(Match_Rating, Distance, Chances),
+          names_to = "Metric",
+          values_to = "Value"
+        ) |>
+        mutate(
+          Value = if_else(is.finite(Value),
+                          Value, NA_real_)
+        ) |>
+        group_by(Metric) |>
+        mutate(
+          Standardized_Value = {
+            s <- sd(Value, na.rm = TRUE)
+            
+            if (!is.finite(s) || s == 0) {
+              rep(NA_real_, n())
+            } else {
+              (Value - mean(Value, na.rm = TRUE)) / s
+            }
+          }
+        ) |>
+        ungroup()
+      
+      validate(
+        need(
+          any(is.finite(summary_data$Standardized_Value)),
+          "Not enough variation to standardize the selected data."
+        )
+      )
+      
+      ggplot(
+        summary_data,
+        aes(
+          x = Metric,
+          y = group_name,
+          fill = Standardized_Value
+        )
+      ) +
+        geom_tile(
+          color = "white",
+          height = 0.95
+        ) +
+        scale_fill_gradient2(
+          low = "#555555",
+          mid = "white",
+          high = "#FDE100",
+          midpoint = 0,
+          na.value = "gray90"
+        ) +
+        labs(
+          title = "Performance Metrics Heatmap",
+          subtitle = "2025-26 UEFA Champions League",
+          x = "Performance Metric",
+          y = NULL,
+          fill = "Standardized\nValue"
+        ) +
+        theme_minimal(base_size = 12) +
+        theme(
+          plot.title = element_text(face = "bold"),
+          axis.text.x = element_text(
+            angle = 30,
+            hjust = 1
+          ),
+          panel.grid = element_blank()
+        )
     }
     
   })
+
 
 }
 
