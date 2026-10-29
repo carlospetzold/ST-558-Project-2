@@ -54,7 +54,7 @@ ui <- page_sidebar(
         inputId = "all_teams",
         label = "Select All Teams",
         value = FALSE
-      )
+      ),
       
       checkboxGroupInput(
         inputId = "starter_filter",
@@ -65,6 +65,12 @@ ui <- page_sidebar(
       
       hr(),
       
+      checkboxInput(
+        inputId = "enable_num1",
+        label = "Apply First Numeric Filter",
+        value = FALSE
+      ),
+      
       selectInput(
         inputId = "numeric_var1",
         label = "First Numeric Variable:",
@@ -73,6 +79,12 @@ ui <- page_sidebar(
       ),
       
       uiOutput("numeric_slider1"),
+      
+      checkboxInput(
+        inputId = "enable_num2",
+        label = "Apply Second Numeric Filter",
+        value = FALSE
+      ),
       
       selectInput(
         inputId = "numeric_var2",
@@ -97,14 +109,65 @@ ui <- page_sidebar(
       
       nav_panel(
         "About",
-        h3("Welcome to the UEFA Champions League Explorer"),
-        p("Explore player and team performance statistics.")
+        
+        h2("Welcome to the UEFA Champions League Explorer"),
+        
+        p(
+          "This interactive application allows users to explore
+    player and team performance statistics from the
+    2025-26 UEFA Champions League season."
+        ),
+        
+        h4("About the Dataset"),
+        
+        p(
+          "The dataset contains player-level match observations,
+    including match ratings, goals, assists, distance covered,
+    chances created, and whether each player appeared as a
+    starter or substitute."
+        ),
+        
+        h4("How to Use the App"),
+        
+        tags$ul(
+          tags$li(
+            "Sidebar: Select teams, appearance types, and optional
+      numerical ranges. Click Apply Filters to update the data."
+          ),
+          tags$li(
+            "Data Download: View and download the filtered dataset."
+          ),
+          tags$li(
+            "Data Exploration: Generate numerical summaries,
+      contingency tables, and statistical visualizations."
+          )
+        ),
+        
+        h4("Data Source"),
+        
+        p(
+          "The data were obtained from fotmob.com."
+        ),
+        
+        h4("UEFA Champions League"),
+        
+        tags$a(
+          "View the original data source",
+          href = "https://www.fotmob.com/leagues/42/overview/champions-league",
+          target = "_blank"
+        )
       ),
       
       nav_panel(
         "Data Download",
         h3("Explore and Download Data"),
         textOutput("row_count"),
+        downloadButton(
+          outputId = "download_data",
+          label = "Download Filtered Data"
+        ),
+        br(),
+        br(),
         DT::dataTableOutput("filtered_table")
       ),
       
@@ -117,6 +180,30 @@ ui <- page_sidebar(
 
 # Server Settings
 server <- function(input, output, session) {
+  
+  team_choices <- sort(unique(na.omit(player_matches$team_name)))
+  
+  observeEvent(input$all_teams, {
+    
+    if (isTRUE(input$all_teams)) {
+      updateSelectInput(
+        session,
+        "team_filter",
+        selected = team_choices
+      )
+    }
+    
+  }, ignoreInit = TRUE)
+  
+  observeEvent(input$team_filter, {
+    
+    updateCheckboxInput(
+      session,
+      "all_teams",
+      value = setequal(input$team_filter, team_choices)
+    )
+    
+  })
   
   #Create first numeric slider
   output$numeric_slider1 <- renderUI({
@@ -177,19 +264,23 @@ server <- function(input, output, session) {
     var1 <- input$numeric_var1
     range1 <- input$numeric_range1
     
-    data <- data |>
-      filter(
-        between(.data[[var1]], range1[1], range1[2])
-      )
+    if (isTRUE(input$enable_num1)) {
+      data <- data |>
+        filter(
+          between(.data[[var1]], range1[1], range1[2])
+        )
+    }
     
     # Apply second numeric filter
     var2 <- input$numeric_var2
     range2 <- input$numeric_range2
     
-    data <- data |>
-      filter(
-        between(.data[[var2]], range2[1], range2[2])
-      )
+    if (isTRUE(input$enable_num2)) {
+      data <- data |>
+        filter(
+          between(.data[[var1]], range1[1], range1[2])
+        )
+    }
     
     # Debugging messages
     print(paste("Apply Filters clicked:", input$apply_filters))
@@ -199,6 +290,21 @@ server <- function(input, output, session) {
     data
     
   }, ignoreInit = FALSE)
+  
+  # Download the currently filtered data as a CSV
+  output$download_data <- downloadHandler(
+    filename = function() {
+      paste0("UCL_Filtered_Data_", Sys.Date(), ".csv")
+    },
+    
+    content = function(file) {
+      write.csv(
+        filtered_data(),
+        file,
+        row.names = FALSE
+      )
+    }
+  )
   
   output$filtered_table <- DT::renderDataTable({
     DT::datatable(
